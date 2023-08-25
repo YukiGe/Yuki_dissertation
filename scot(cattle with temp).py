@@ -65,8 +65,9 @@ if __name__ == '__main__':
     
     scot_cattle_data_folder='../data/merge_gdf/2019/'
     gdf_cattle_2019=gpd.read_file('../data/merge_gdf/2019/2019_merged.shp').to_crs(epsg_m)
-    merged_gdf_2019 =str_to_dt(merged_gdf_2019 )
+    merged_gdf_2019=str_to_dt(merged_gdf_2019 )
     merged_gdf_2019=merged_gdf_2019.drop(columns=['level_0'])
+    merged_gdf_2019=merged_gdf_2019.fillna(0)
     column_converter={'projection_y_coordinate':'projection','projection_x_coordinate':'projecti_1','month_number':'month_numb'}   #transfer columns's name since saving the shp file in short name
 '''
 #plot for January:
@@ -77,8 +78,8 @@ plt.show()
 '''
 
 #First we define some variables which determine what goes on in the farm:
-month_in=10 #what month they are brought inside the barn
-month_out=4 #what month they are let out of the barn
+month_in=11 #what month they are brought inside the barn
+month_out=5 #what month they are let out of the barn
 summer_prop=4/24 #what proportion of the day are they brought inside to the barn for milking in when out to pasture
 winter_prop=24/24 #What proportion of the time they are in the barn. i.e. all the time 
 DE_summer=0.7 #The 'Digestible Energy' of the food they are eating when out to pasture i.e. they grass in the field
@@ -91,8 +92,8 @@ WG_dict={'dairy':0,'dairy_nl':0,'MF':LS_Energy.calc_WG(birth_weight_var,MW_dict[
 #You can look at 'dairy' and 'dairy non lactaing - maybe some of the younger dairy cows are growing?
 
 #extract each months tempertures&cattle for one grid point
-y_coord=562500
-x_coord=212500
+y_coord=502500
+x_coord=302500
  #these coordinates define the grid point we want to extract (you can choose another one if you want)
 gdf_2019_point = merged_gdf_2019[(merged_gdf_2019[column_converter['projection_y_coordinate']] == y_coord) & (merged_gdf_2019[column_converter['projection_x_coordinate']] == x_coord)] #filter down the data frame to only include this point
 months =list(gdf_2019_point[column_converter['month_number']]) #extract all the months (will be 1 to 12) and convert to a list
@@ -273,7 +274,14 @@ def calc_emissions_all_points(gdf,month_in,month_out,winter_prop,summer_prop,DE_
 FIG_SAVE_DIR='C:/Users/admin/Desktop/LiveStockCalculations-master/plot/'
 solved_gdf_2019=calc_emissions_all_points(merged_gdf_2019,month_in,month_out,winter_prop,summer_prop,DE_summer,DE_winter,milk_yield,WG_dict,
                                 MCF_m,B_0_dict['dairy'],0.1,gauss_popt,spread_time=[],cow_type='dairy')
-solved_gdf_2019.to_file('../LiveStockCalculations-master/LiveStockCalculations-master/result/solved_2019.shp')
+def df_dt_to_string(df):
+    dates=list(df['time'])
+    dates_str=[d.strftime('%Y-%m-%d') for d in dates]
+    df['time']=dates_str
+    return df
+
+solved_gdf_2019=df_dt_to_string(solved_gdf_2019)
+solved_gdf_2019.to_file('C://Users//admin//Desktop//LiveStockCalculations-master//LiveStockCalculations-master//result//solved_2019.shp')
 #Now we can plot the MCF, for example, in the UK for each month:
 for m in np.arange(1,13): #loop through all months
     month_solved_gdf_2019=solved_gdf_2019[solved_gdf_2019[column_converter['month_number']]==m] #filter to the month of intrest
@@ -284,12 +292,6 @@ for m in np.arange(1,13): #loop through all months
     plt.savefig(FIG_SAVE_DIR+'TM kgCH4_2019_'+str(m)+'.png',dpi=300) #Save the figure
     plt.close()
 
-
-
-#How to calculate MCF for all of scotland for the 12 months:
-MCF_scotand_12=month_solved_gdf_2019['TM kgCH4'].sum()/(month_solved_gdf_2019['VS kg'].sum()*B_0_dict['dairy']*0.67)
-
-#####Now we do every year with a loop 1884-2020. THIS WILL TAKE A LONG TIME! UNcomment to run######
 
 '''
 #CHOOSE the years you want to solve for:
@@ -325,4 +327,4 @@ for i in range(len(years)): #loop through all the indexes of the years data
         plt.title('Mean MCF {M:1.2f}'.format(M=mean_MCF))#Make the title of the plot the mean MCF over the UK
         plt.savefig(save_folder+str(m)+'.png',dpi=300) #Save the figure
         plt.close()
-'''        
+'''         
